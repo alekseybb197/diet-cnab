@@ -1,0 +1,202 @@
+diff --git a/martianbank/templates/accounts.yaml b/martianbank/templates/accounts.yaml
+index 249eb27..6494cb5 100644
+--- a/martianbank/templates/accounts.yaml
++++ b/martianbank/templates/accounts.yaml
+@@ -16,7 +16,7 @@ spec:
+     spec:
+       containers:
+         - name: accounts
+-          image: ghcr.io/cisco-open/martian-bank-demo-accounts
++          image: "{{ .Values.images.accounts.repository }}:{{ .Values.images.accounts.tag }}"
+           envFrom:
+             - configMapRef:
+                 name: configmap-martianbank
+diff --git a/martianbank/templates/deployment.yaml b/martianbank/templates/deployment.yaml
+index 28be2d0..a7348ad 100644
+--- a/martianbank/templates/deployment.yaml
++++ b/martianbank/templates/deployment.yaml
+@@ -16,7 +16,7 @@ spec:
+     spec:
+       containers:
+         - name: loan
+-          image: ghcr.io/cisco-open/martian-bank-demo-loan
++          image: "{{ .Values.images.loan.repository }}:{{ .Values.images.loan.tag }}"
+           envFrom:
+             - configMapRef:
+                 name: configmap-martianbank
+diff --git a/martianbank/templates/k8.yaml b/martianbank/templates/k8.yaml
+index 90af913..d7d6caf 100644
+--- a/martianbank/templates/k8.yaml
++++ b/martianbank/templates/k8.yaml
+@@ -16,7 +16,7 @@ spec:
+         spec:
+             containers:
+                 - name: ui
+-                  image: ghcr.io/cisco-open/martian-bank-demo-ui
++                  image: "{{ .Values.images.ui.repository }}:{{ .Values.images.ui.tag }}"
+                   env: 
+                     {{- if .Values.nginx.enabled }}
+                       - name: VITE_USERS_URL
+@@ -79,7 +79,7 @@ spec:
+         spec:
+             containers:
+                 - name: dashboard
+-                  image: ghcr.io/cisco-open/martian-bank-demo-dashboard
++                  image: "{{ .Values.images.dashboard.repository }}:{{ .Values.images.dashboard.tag }}"
+                   env:
+                       - name: SERVICE_PROTOCOL
+                         value: {{.Values.SERVICE_PROTOCOL}}
+@@ -107,7 +107,7 @@ spec:
+         app: dashboard
+     ports:
+         - protocol: TCP
+-          port: 5000
++          port: {{ .Values.dashboard }}
+           targetPort: 5000
+ 
+ 
+@@ -132,7 +132,7 @@ spec:
+         spec:
+             containers:
+                 - name: customer-auth
+-                  image: ghcr.io/cisco-open/martian-bank-demo-customer-auth
++                  image: "{{ .Values.images.auth.repository }}:{{ .Values.images.auth.tag }}"
+                   env:
+                     {{- if not .Values.mongodb.enabled }}
+                       - name: DATABASE_HOST
+@@ -180,7 +180,7 @@ spec:
+         spec:
+             containers:
+                 - name: atm-locator
+-                  image: ghcr.io/cisco-open/martian-bank-demo-atm-locator
++                  image: "{{ .Values.images.locator.repository }}:{{ .Values.images.locator.tag }}"
+                   env:
+                     {{- if not .Values.mongodb.enabled }}
+                       - name: DATABASE_HOST
+@@ -230,7 +230,7 @@ spec:
+         spec:
+             containers:
+                 - name: nginx
+-                  image: ghcr.io/cisco-open/martian-bank-demo-nginx 
++                  image: "{{ .Values.images.nginx.repository }}:{{ .Values.images.nginx.tag }}" 
+ ---
+ apiVersion: v1
+ kind: Service
+@@ -242,7 +242,7 @@ spec:
+         app: nginx
+     ports:
+         - protocol: TCP
+-          port: 8080
++          port: {{ .Values.loginPage }}
+           targetPort: 8080
+ {{- end }}
+ 
+diff --git a/martianbank/templates/mongodb.yaml b/martianbank/templates/mongodb.yaml
+index 1d74735..236684b 100644
+--- a/martianbank/templates/mongodb.yaml
++++ b/martianbank/templates/mongodb.yaml
+@@ -20,7 +20,7 @@ spec:
+         volumeMounts:
+           - mountPath: /data/db
+             name: mo-data
+-        image: mongo
++        image: "{{ .Values.images.mongo.repository }}:{{ .Values.images.mongo.tag }}"
+         env:
+           - name: MONGO_INITDB_ROOT_USERNAME
+             value: root
+diff --git a/martianbank/templates/persistentVolume.yaml b/martianbank/templates/persistentVolume.yaml
+index e2aa1ea..fb835de 100644
+--- a/martianbank/templates/persistentVolume.yaml
++++ b/martianbank/templates/persistentVolume.yaml
+@@ -6,10 +6,10 @@ spec:
+   accessModes:
+   - ReadWriteOnce
+   capacity:
+-    storage: 1000Mi
++    storage: {{ .Values.storageSize }}
+   hostPath:
+     path: /data/standard/default/mo-data-pv
+     type: ""
+   persistentVolumeReclaimPolicy: Retain
+-  storageClassName: standard
++  storageClassName: {{ .Values.storageClassName }}
+   volumeMode: Filesystem
+\ No newline at end of file
+diff --git a/martianbank/templates/persistentVolumeClain.yml b/martianbank/templates/persistentVolumeClain.yml
+index 24b5ba6..c1655db 100644
+--- a/martianbank/templates/persistentVolumeClain.yml
++++ b/martianbank/templates/persistentVolumeClain.yml
+@@ -3,9 +3,9 @@ kind: PersistentVolumeClaim
+ metadata:
+   name: mo-data-pvc
+ spec:
+-  storageClassName: standard
++  storageClassName: {{ .Values.storageClassName }}
+   accessModes:
+   - ReadWriteOnce
+   resources:
+     requests:
+-      storage: 1000Mi
+\ No newline at end of file
++      storage: {{ .Values.storageSize }}
+\ No newline at end of file
+diff --git a/martianbank/templates/transactions.yaml b/martianbank/templates/transactions.yaml
+index fa0ace2..2148c26 100644
+--- a/martianbank/templates/transactions.yaml
++++ b/martianbank/templates/transactions.yaml
+@@ -17,7 +17,7 @@ spec:
+         spec:
+             containers:
+                 - name: transactions
+-                  image: ghcr.io/cisco-open/martian-bank-demo-transactions
++                  image: "{{ .Values.images.transactions.repository }}:{{ .Values.images.transactions.tag }}"
+                   envFrom:
+                     - configMapRef:
+                         name: configmap-martianbank
+diff --git a/martianbank/values.yaml b/martianbank/values.yaml
+index 42e30ee..8f6ef0e 100644
+--- a/martianbank/values.yaml
++++ b/martianbank/values.yaml
+@@ -115,4 +115,39 @@ DB_URL:
+ ## Deploy locust
+ 
+ locust: 
+-  enabled: false
+\ No newline at end of file
++  enabled: false
++
++####
++storageClassName:
++storageSize: 1000Mi
++dashboard: 5000
++loginPage: 8080
++
++images:
++  accounts:
++    repository: ghcr.io/cisco-open/martian-bank-demo-accounts
++    tag: "latest"
++  locator:
++    repository: ghcr.io/cisco-open/martian-bank-demo-atm-locator
++    tag: "latest"
++  auth:
++    repository: ghcr.io/cisco-open/martian-bank-demo-customer-auth
++    tag: "latest"
++  dashboard:
++    repository: ghcr.io/cisco-open/martian-bank-demo-dashboard
++    tag: "latest"
++  loan:
++    repository: ghcr.io/cisco-open/martian-bank-demo-loan
++    tag: "latest"
++  mongo:
++    repository: mongo
++    tag: "latest"
++  nginx:
++    repository: ghcr.io/cisco-open/martian-bank-demo-nginx
++    tag: "latest"
++  transactions:
++    repository: ghcr.io/cisco-open/martian-bank-demo-transactions
++    tag: "latest"
++  ui:
++    repository: ghcr.io/cisco-open/martian-bank-demo-ui
++    tag: "latest"
+\ No newline at end of file

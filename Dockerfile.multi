@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile-upstream:1.4.0
+# Stage 1: Build stage
+FROM golang:1.20-alpine AS build
+
+# make application home with fake porter content
+RUN mkdir -p /build/cnab/app/charts && \
+    mkdir -p /build/cnab/app/outputs && \
+    mkdir -p /build/cnab/app/porter/outputs && \
+    echo -n >/build/cnab/app/outputs/porter-state
+
+# build application
+WORKDIR /build/cnab/app
+COPY go.mod ./
+COPY main.go ./
+RUN CGO_ENABLED=0 GOOS=linux go build -o run .
+RUN rm -f go.mod main.go
+
+# get helm
+RUN apk add --update --no-cache curl tar && \
+    curl https://get.helm.sh/helm-v3.8.2-linux-amd64.tar.gz --output helm.tar.gz && \
+    tar -xvf helm.tar.gz && rm -f helm.tar.gz && \
+    mv linux-amd64/helm /usr/bin/helm && chmod +x /usr/bin/helm && \
+    rm -rf linux-amd64
+
+# copy charts
+COPY charts /build/cnab/app/charts
+
+# create empty porter state
+RUN mkdir -p /state/porter && \
+    tar czvf /state/porter/state.tgz --files-from /dev/null
+
+# Stage 2: Now copy it into invocation image
+FROM gcr.io/distroless/static-debian11
+
+ARG BUNDLE_DIR='/cnab/app'
+ARG BUNDLE_UID=65532
+ARG BUNDLE_USER=nonroot
+ARG BUNDLE_GID=0
+
+COPY --from=build --chown=${BUNDLE_UID}:${BUNDLE_GID} /build/ /
+COPY --chown=${BUNDLE_UID}:${BUNDLE_GID} .cnab/app/porter.yaml /cnab/app
+COPY --chown=${BUNDLE_UID}:${BUNDLE_GID} .cnab/bundle.json /cnab
+COPY --from=build --chown=${BUNDLE_UID}:${BUNDLE_GID} /usr/bin/helm /usr/bin/helm
+
+COPY --from=build --chown=${BUNDLE_UID}:${BUNDLE_GID} /state/ /
+
+USER ${BUNDLE_UID}
+WORKDIR ${BUNDLE_DIR}
+CMD ["/cnab/app/run"]

@@ -1,0 +1,153 @@
+schemaType: Bundle
+schemaVersion: 1.0.1
+
+name: demo
+version: 0.2.0
+description: "An example Porter configuration"
+registry: "192.168.14.200:5080"
+dockerfile: Dockerfile.multi
+
+mixins:
+  - helm3
+
+images:
+  accounts:
+    imageType: docker
+    repository: 192.168.14.200:5080/docker/martian-bank-demo-accounts
+    tag: "latest"
+    digest: sha256:e54fb290a66c0966c30887a796970abe080f19c8c98804c53783fd57ae8155aa
+  locator:
+    imageType: docker
+    repository: 192.168.14.200:5080/docker/martian-bank-demo-atm-locator
+    tag: "latest"
+    digest: sha256:177c89df6be15681ebaeb9b98eb0d3eaac89cffaf18b59abbbd626051359ae9a
+  auth:
+    imageType: docker
+    repository: 192.168.14.200:5080/docker/martian-bank-demo-customer-auth
+    tag: "latest"
+    digest: sha256:1415f540fb5e3aa208ef93efad9f695c87495e9c3f4caf1a7c6b8efe36d74a39
+  dashboard:
+    imageType: docker
+    repository: 192.168.14.200:5080/docker/martian-bank-demo-dashboard
+    tag: "latest"
+    digest: sha256:a2b242dbddc590de8faa1cbca1f3ae58fff8e0c53accbda567fbd931be062818
+  loan:
+    imageType: docker
+    repository: 192.168.14.200:5080/docker/martian-bank-demo-loan
+    tag: "latest"
+    digest: sha256:452553e4ab53d9b333071db04757ea8e08b99aed146b5d39d55172f357f42797
+  mongo:
+    imageType: docker
+    repository: 192.168.14.200:5080/docker/mongo
+    tag: "latest"
+    digest: sha256:9f0d0ef54799cd17e4338c5c4da75565d2816a20d0202507fa51bca078a0d593
+  nginx:
+    imageType: docker
+    repository: 192.168.14.200:5080/docker/martian-bank-demo-nginx
+    tag: "latest"
+    digest: sha256:3ebbd2de11475e4a7088dc8aff11a10fb6a6dc34e0c26bc724144e144aa626d9
+  transactions:
+    imageType: docker
+    repository: 192.168.14.200:5080/docker/martian-bank-demo-transactions
+    tag: "latest"
+    digest: sha256:fbb606011a999467550d302570dcf7f0e2c17572b26d7096ee1bf02b5ef35f8c
+  ui:
+    imageType: docker
+    repository: 192.168.14.200:5080/docker/martian-bank-demo-ui
+    tag: "latest"
+    digest: sha256:10b459e366a1c07cb93278bc688a8941e11905065308bd3a3b74a19e52ffa08c
+
+parameters:
+  - name: namespace
+    type: string
+    env: namespace
+    default: "demo"
+  - name: http_port
+    type: string
+    env: http_port
+    default: "8080"
+  - name: storage_size
+    type: string
+    env: storage_size
+    default: "100Mi"
+
+credentials:
+  - name: kubeconfig
+    path: /home/nonroot/.kube/config
+
+custom:
+  charts:
+    martianbank: charts/martianbank
+
+install:
+
+#
+#/usr/local/bin/helm3 /usr/local/bin/helm3 upgrade \
+#  --install martianbank charts/martianbank \
+#  --namespace demo --wait --values charts/martianbank/values.yaml \
+#  --timeout 600s --atomic --create-namespace \
+#  --set http_port=8080 \
+#  --set images.accounts.repository=192.168.14.200:5080/docker/martian-bank-demo-accounts \
+#  --set images.accounts.tag=latest@sha256:e54fb290a66c0966c30887a796970abe080f19c8c98804c53783fd57ae8155aa \
+#  --set images.auth.repository=192.168.14.200:5080/docker/martian-bank-demo-customer-auth \
+#  --set images.auth.tag=latest@sha256:1415f540fb5e3aa208ef93efad9f695c87495e9c3f4caf1a7c6b8efe36d74a39 \
+#  --set images.dashboard.repository=192.168.14.200:5080/docker/martian-bank-demo-dashboard \
+#  --set images.dashboard.tag=latest@sha256:a2b242dbddc590de8faa1cbca1f3ae58fff8e0c53accbda567fbd931be062818 \
+#  --set images.loan.repository=192.168.14.200:5080/docker/martian-bank-demo-loan \
+#  --set images.loan.tag=latest@sha256:452553e4ab53d9b333071db04757ea8e08b99aed146b5d39d55172f357f42797 \
+#  --set images.locator.repository=192.168.14.200:5080/docker/martian-bank-demo-atm-locator \
+#  --set images.locator.tag=latest@sha256:177c89df6be15681ebaeb9b98eb0d3eaac89cffaf18b59abbbd626051359ae9a \
+#  --set images.nginx.repository=192.168.14.200:5080/docker/martian-bank-demo-nginx \
+#  --set images.nginx.tag=latest@sha256:3ebbd2de11475e4a7088dc8aff11a10fb6a6dc34e0c26bc724144e144aa626d9 \
+#  --set images.transactions.repository=192.168.14.200:5080/docker/martian-bank-demo-transactions \
+#  --set images.transactions.tag=latest@sha256:fbb606011a999467550d302570dcf7f0e2c17572b26d7096ee1bf02b5ef35f8c \
+#  --set images.ui.repository=192.168.14.200:5080/docker/martian-bank-demo-ui \
+#  --set images.ui.tag=latest@sha256:10b459e366a1c07cb93278bc688a8941e11905065308bd3a3b74a19e52ffa08c \
+#  --set storage_class=standard --set storage_size=100Mi
+#
+
+  - helm3:
+      description: install demo martianbank
+      name: martianbank
+      chart: ${ bundle.custom.charts.martianbank }
+      namespace: ${ bundle.parameters.namespace }
+      values:
+        - ${ bundle.custom.charts.martianbank }/values.yaml
+      set:
+        http_port: ${ bundle.parameters.http_port }
+        storage_size: ${ bundle.parameters.storage_size }
+
+        images.accounts.repository: ${ bundle.images.accounts.repository }
+        images.accounts.tag: ${ bundle.images.accounts.tag }@${ bundle.images.accounts.digest }
+
+        images.locator.repository: ${ bundle.images.locator.repository }
+        images.locator.tag: ${ bundle.images.locator.tag }@${ bundle.images.locator.digest }
+
+        images.auth.repository: ${ bundle.images.auth.repository }
+        images.auth.tag: ${ bundle.images.auth.tag }@${ bundle.images.auth.digest }
+
+        images.dashboard.repository: ${ bundle.images.dashboard.repository }
+        images.dashboard.tag: ${ bundle.images.dashboard.tag }@${ bundle.images.dashboard.digest }
+
+        images.loan.repository: ${ bundle.images.loan.repository }
+        images.loan.tag: ${ bundle.images.loan.tag }@${ bundle.images.loan.digest }
+
+        images.nginx.repository: ${ bundle.images.nginx.repository }
+        images.nginx.tag: ${ bundle.images.nginx.tag }@${ bundle.images.nginx.digest }
+
+        images.transactions.repository: ${ bundle.images.transactions.repository }
+        images.transactions.tag: ${ bundle.images.transactions.tag }@${ bundle.images.transactions.digest }
+
+        images.ui.repository: ${ bundle.images.ui.repository }
+        images.ui.tag: ${ bundle.images.ui.tag }@${ bundle.images.ui.digest }
+
+      timeout: 600s
+      wait: true
+
+uninstall:
+  - helm3:
+      description: uninstall demo martianbank
+      namespace: ${ bundle.parameters.namespace }
+      releases:
+        - martianbank
+      wait: true
